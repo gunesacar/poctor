@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Tor Browser Fingerprinting Tests{% endblock %}
+{% block head %}
+  {{ super() }}
+    <script src="{{ url_for('static', filename='js/jquery-1.11.1.min.js') }}" type="text/javascript"></script>
+    <script src="{{ url_for('static', filename='js/front.js') }}" type="text/javascript"></script>
+  <style type="text/css">
+    .important { color: #336699; }
+  </style>
+{% endblock %}
+{% block content %}
+
+  <div class="container">
+     <div class="jumbotron">
+       <h2>Tor Browser Fingerprinting Tests</h2>
+        <p>This site tests your Tor Browser to see how unique it is based on the information 
+        	it will share with sites it visits. Click below and you will be given a uniqueness score, 
+        	letting you see how easily identifiable you might be as you surf the web. Your browser 
+        	properties will be collected by this site.
+        </p>
+        <p><a href="/?rec={{record_fp}}&tbb_v={{tbb_v}}&action=test" id="clicklink" class="btn btn-success btn-lg" role="button">Test Me »</a>
+        </p>
+      </div>
+      </div>
+
+{% endblock %}

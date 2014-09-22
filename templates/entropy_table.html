@@ -1,0 +1,14 @@
+<div class="container">
+  <div class="jumbotron">
+    <h2>Results</h2>
+    <p>Within our dataset of several million visitors, only one in <b>{{tot_one_in_x}}</b> browsers have the same fingerprint as yours.</p>
+    <p>Currently, we estimate that your browser has a fingerprint that conveys <b>{{tot_surpisal}}</b> bits of identifying information. </p>
+  </div>
+
+  <table class="table table-striped table-bordered">
+    <tr><th>Browser Characteristic</th><th>bits of identifying information</th><th>one in x browsers have this value value</th><th>Value</th></tr>
+      {% for row in rows %}
+        <tr><td class="bold">{{row.var}}</td><td>{{row.bits}}</td><td>{{row.one_in_x}}</td><td>{{row.value}}</td></tr>
+      {% endfor %}
+  </table>
+</div>

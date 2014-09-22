@@ -1,0 +1,33 @@
+body {
+  padding-top: 70px;
+  padding-bottom: 30px;
+}
+
+.theme-dropdown .dropdown-menu {
+  position: static;
+  display: block;
+  margin-bottom: 20px;
+}
+
+.theme-showcase > p > .btn {
+  margin: 5px 0;
+}
+
+.theme-showcase .navbar .container {
+  width: auto;
+}
+/* Creduts: http://timkadlec.com/2013/01/windows-phone-8-and-device-width/ */
+@-webkit-viewport{width:device-width}
+@-moz-viewport{width:device-width}
+@-ms-viewport{width:device-width}
+@-o-viewport{width:device-width}
+@viewport{width:device-width}
+td.bold{
+    font-weight: bold;
+}
+
+img.loading{
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}

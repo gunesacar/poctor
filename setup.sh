@@ -1,0 +1,1 @@
+sqlite3 tbbfp.db < schema.sql
