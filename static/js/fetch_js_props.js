@@ -153,7 +153,7 @@ function fetch_client_whorls(){
 
 $(document).ready(function(){
   // wait some time for the flash font detection:
-    $("#flashcontent").flash(
+   /* $("#flashcontent").flash(
     {
       "src": "static/js/fonts2.swf",
       "width": "1",
@@ -164,6 +164,6 @@ $(document).ready(function(){
     },
     { update: false }
   );
-
+*/
   setTimeout("fetch_client_whorls()",1000);
 });
