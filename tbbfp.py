@@ -50,9 +50,10 @@ def close_db(error):
         
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    # we lose the http params on ajax post !!! 
     action = get_req_arg('action', None)
+    record_fp, tbb_v = get_visit_params()
     if action is None:  # just landed
-        record_fp, tbb_v = get_visit_params()
         return render_template('front.html', record_fp=record_fp, tbb_v=tbb_v)
     elif action == "test":  # linked from Test me button on the landing page
         js_enabled = get_req_arg('js', "no")
@@ -60,24 +61,34 @@ def index():
             return render_template('resultjs.html', result_table='')
         else:  # JS disabled, record server side FP only
             fp = TBFingerprint()
+            fp.tbb_v = tbb_v
+            print "tbb_v", tbb_v 
             fp = detect_server_side_fp(fp)
+            # if record_fp == 'yes':
             record_fingerprint(fp)
             result_table = entropy_table(fp);
             return render_template('result.html', result_table=result_table)
     elif action == "ajax_post_client_vars":  # post from AJAX, combine with server-side and record
+        # we sometimes get multuple (2) POSTs since it times out and retries until we respond
         fp = TBFingerprint()
+        fp.tbb_v = tbb_v
+        print "tbb_v", tbb_v 
         detect_server_side_fp(fp)
         detect_client_side_fp(fp)
+        #if record_fp == 'yes':  # handle cases where rec-no and unique visit causes div by zero errors 
         record_fingerprint(fp)
         return entropy_table(fp)  # echoed by the AJAX-POST endpoint, will be inserted to div#result.
     else:
         return "Dunno what to do here!"
 
 def count_similar(var, val, tbb_v):
-    return get_db().execute("""SELECT total FROM totals WHERE 
-                            variable=? AND value=? AND tbb_v=?""",
-                            [var, val, tbb_v]).fetchone()[0]
-    
+    """Count similar entries."""
+    try:
+        return get_db().execute("""SELECT total FROM totals WHERE 
+                variable=? AND value=? AND tbb_v=?""", [var, val, tbb_v]).fetchone()[0]
+    except:
+        return 0
+
 def get_info_metrics(var, val, tbb_v, tbb_v_total):
     """Return surpisal and "one_in_x" value for a (var, val, tbb_v) tuple."""
     similar_count = count_similar(var, val, tbb_v)
@@ -86,7 +97,7 @@ def get_info_metrics(var, val, tbb_v, tbb_v_total):
 def get_entropy(count_similar, count_total):
     """Return the surprisal value."""
     return 0 + round(-log(count_similar / count_total, 2) , 2)  # add 0 to prevent -0.0
-    
+
 def get_overall_metrics(fp, tbb_v_total):
     """Return info metrics for combined fingerprint."""
     return get_info_metrics('signature', fp.signature, fp.tbb_v, tbb_v_total)  # TODO !!!
@@ -101,9 +112,11 @@ def entropy_table(fp):
     tbb_v_total = count_similar('count', '', fp.tbb_v)  # total entries with this tbb_v
     surpisal, one_in_x = get_overall_metrics(fp, tbb_v_total)
     res_rows = [get_res_dict_for_var(var, val, fp.tbb_v, tbb_v_total) for var, val in fp]
-    return render_template('entropy_table.html', tot_surpisal=surpisal, 
-                           tot_one_in_x=one_in_x, rows=res_rows)
-  
+    res_dict = {"res_rows": res_rows, "tot_surpisal": surpisal,
+                "tbb_v_total": tbb_v_total, "tot_one_in_x":one_in_x,
+                 "tbb_v": fp.tbb_v}
+    return render_template('entropy_table.html', res_dict=res_dict)
+
 
 def upsert_totals(var, val, tbb_v):
     """Insert into or update totals table."""
@@ -112,7 +125,8 @@ def upsert_totals(var, val, tbb_v):
         db.execute('insert into totals values (?, ?, ?, ?, ?)',
                [None, var, val, tbb_v, 1])
     except sqlite3.IntegrityError, err:  # throws when (variable, value, tbb_v) is already present
-        db.execute('update totals set total=total+1 where variable=? and value=? and tbb_v=?', [var, val, tbb_v])
+        db.execute('UPDATE TOTALS SET total=total+1 WHERE variable=? AND value=? AND tbb_v=?',
+                   [var, val, tbb_v])
     db.commit()
 
 # TODO: decide which values should be stored as hash
@@ -132,8 +146,8 @@ def record_fingerprint(fp):
 # TODO: Add support for POST if we settle on that
 def get_visit_params():
     """Return the TBB version and record bool from GET params."""
-    return get_req_arg('rec', 'no'), get_req_arg('tbb_v', 'unknown') 
-    
+    return get_req_arg('rec', 'no'), get_req_arg('tbb_v', 'unknown')
+
 def get_http_header(header, default=''):
     """Return the value of an HTTP header."""
     try:
@@ -142,12 +156,11 @@ def get_http_header(header, default=''):
         return default
 
 def get_req_arg(param_name, default=''):
-    try:
-        return request.args.get(param_name, default)
-    except:
-        return default
-
+    """Return HTTP parameter value."""
+    return request.args.get(param_name) or default
+    
 def get_form_data(key, default=''):
+    """Return submitted POST data."""
     try:
         return request.form[key]
     except:

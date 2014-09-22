@@ -24,5 +24,5 @@ class TBFingerprint(object):
 def hash_text(text, algo='sha1'):
     """Return the hash value for the text."""
     h = hashlib.new(algo)
-    h.update(text)
+    h.update(text.encode('utf-8'))
     return h.hexdigest()
