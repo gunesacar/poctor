@@ -1,7 +1,19 @@
 // taken from EFF Panopticlick project
+$("#flashcontent").flash(
+  {
+    "src": "resources/fonts2.swf",
+    "width": "1",
+    "height": "1",
+    "swliveconnect": "true",
+    "id": "flashfontshelper",
+    "name": "flashfontshelper"
+  },
+  { update: false }
+);
+
 
 var success = 0;
-var retries = 2;
+var retries = 2;  // max retry count for POST
 
 function retry_post() {
   retries = retries -1;
@@ -150,20 +162,16 @@ function fetch_client_whorls(){
   
 };
 
+function set_dom_storage(){
+  try { 
+    localStorage.panopticlick = "yea";
+    sessionStorage.panopticlick = "yea";
+  } catch (ex) { }
+}
+
+set_dom_storage();
 
 $(document).ready(function(){
   // wait some time for the flash font detection:
-   /* $("#flashcontent").flash(
-    {
-      "src": "static/js/fonts2.swf",
-      "width": "1",
-      "height": "1",
-      "swliveconnect": "true",
-      "id": "flashfontshelper",
-      "name": "flashfontshelper"
-    },
-    { update: false }
-  );
-*/
   setTimeout("fetch_client_whorls()",1000);
 });

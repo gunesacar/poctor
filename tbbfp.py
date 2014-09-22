@@ -24,6 +24,37 @@ if DEBUGMODE:
 else:
     app.config.from_envvar('FLASKR_SETTINGS', silent=False)  # in production 
 
+        
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    # we lose the http params on ajax post !!! 
+    action = get_req_arg('action', None)
+    record_fp, tbb_v = get_visit_params()
+    if action is None:  # just landed
+        return render_template('front.html', record_fp=record_fp, tbb_v=tbb_v)
+    elif action == "test":  # linked from Test me button on the landing page
+        js_enabled = get_req_arg('js', "no")
+        if js_enabled == "yes":  # will POST client-side FP 
+            return render_template('resultjs.html', result_table='')
+        else:  # JS disabled, record server side FP only
+            fp = TBFingerprint()
+            fp.tbb_v = tbb_v
+            fp = detect_server_side_fp(fp)
+            # if record_fp == 'yes':
+            record_fingerprint(fp)
+            result_table = entropy_table(fp);
+            return render_template('result.html', result_table=result_table)
+    elif action == "ajax_post_client_vars":  # post from AJAX, combine with server-side and record
+        # we sometimes get multuple (2) POSTs since it times out and retries until we respond
+        fp = TBFingerprint()
+        fp.tbb_v = tbb_v
+        detect_server_side_fp(fp)
+        detect_client_side_fp(fp)
+        #if record_fp == 'yes':  # handle cases where rec-no and unique visit causes div by zero errors 
+        record_fingerprint(fp)
+        return entropy_table(fp)  # echoed by the AJAX-POST endpoint, will be inserted to div#result.
+    else:
+        return "Dunno what to do here!"
 
 # TODO: check if we need use lock/acquire here
 def connect_db():
@@ -47,45 +78,12 @@ def close_db(error):
     """Closes the database at the end of the request."""
     if hasattr(g, 'sqlite_db'):
         g.sqlite_db.close()
-        
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    # we lose the http params on ajax post !!! 
-    action = get_req_arg('action', None)
-    record_fp, tbb_v = get_visit_params()
-    if action is None:  # just landed
-        return render_template('front.html', record_fp=record_fp, tbb_v=tbb_v)
-    elif action == "test":  # linked from Test me button on the landing page
-        js_enabled = get_req_arg('js', "no")
-        if js_enabled == "yes":  # will POST client-side FP 
-            return render_template('resultjs.html', result_table='')
-        else:  # JS disabled, record server side FP only
-            fp = TBFingerprint()
-            fp.tbb_v = tbb_v
-            print "tbb_v", tbb_v 
-            fp = detect_server_side_fp(fp)
-            # if record_fp == 'yes':
-            record_fingerprint(fp)
-            result_table = entropy_table(fp);
-            return render_template('result.html', result_table=result_table)
-    elif action == "ajax_post_client_vars":  # post from AJAX, combine with server-side and record
-        # we sometimes get multuple (2) POSTs since it times out and retries until we respond
-        fp = TBFingerprint()
-        fp.tbb_v = tbb_v
-        print "tbb_v", tbb_v 
-        detect_server_side_fp(fp)
-        detect_client_side_fp(fp)
-        #if record_fp == 'yes':  # handle cases where rec-no and unique visit causes div by zero errors 
-        record_fingerprint(fp)
-        return entropy_table(fp)  # echoed by the AJAX-POST endpoint, will be inserted to div#result.
-    else:
-        return "Dunno what to do here!"
 
 def count_similar(var, val, tbb_v):
     """Count similar entries."""
     try:
         return get_db().execute("""SELECT total FROM totals WHERE 
-                variable=? AND value=? AND tbb_v=?""", [var, val, tbb_v]).fetchone()[0]
+            variable=? AND value=? AND tbb_v=?""", [var, val, tbb_v]).fetchone()[0]
     except:
         return 0
 
@@ -159,12 +157,9 @@ def get_req_arg(param_name, default=''):
     """Return HTTP parameter value."""
     return request.args.get(param_name) or default
     
-def get_form_data(key, default=''):
+def get_req_form_data(key, default=''):
     """Return submitted POST data."""
-    try:
-        return request.form[key]
-    except:
-        return default
+    return request.form[key] or default
 
 def get_accept_headers():
     """Return HTTP accept headers in concatenated form.""" 
@@ -187,13 +182,13 @@ def detect_server_side_fp(fp):
 def detect_client_side_fp(fp):
     """TODO process, form data."""
     fp.js_enabled = '1'
-    fp.video = get_form_data('video')
-    fp.js_user_agent = get_form_data('js_user_agent')
-    fp.plugins = get_form_data('plugins')
-    fp.timezone = get_form_data('timezone')
-    fp.fonts = get_form_data('fonts')
-    fp.cookie_enabled = get_form_data('cookie_enabled')
-    fp.supercookies = get_form_data('supercookies')
+    fp.video = get_req_form_data('video')
+    fp.js_user_agent = get_req_form_data('js_user_agent')
+    fp.plugins = get_req_form_data('plugins')
+    fp.timezone = get_req_form_data('timezone')
+    fp.fonts = get_req_form_data('fonts')
+    fp.cookie_enabled = get_req_form_data('cookie_enabled')
+    fp.supercookies = get_req_form_data('supercookies')
     return fp
 
 if __name__ == '__main__':
