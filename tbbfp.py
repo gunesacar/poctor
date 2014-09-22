@@ -12,7 +12,7 @@ from fp_common import TBFingerprint, DB_CONN_TIMEOUT, hash_text
 from math import log
 app = Flask(__name__)
 
-DEBUGMODE=False  # False in production
+DEBUGMODE=True  # False in production
 DBFILENAME='tbbfp.db'
 # Load default config and override config from an environment variable
 if DEBUGMODE:
@@ -87,14 +87,24 @@ def count_similar(var, val, tbb_v):
     except:
         return 0
 
+def ensure_positive(num):
+    num = 1 if not num else num
+    return num
+
 def get_info_metrics(var, val, tbb_v, tbb_v_total):
     """Return surpisal and "one_in_x" value for a (var, val, tbb_v) tuple."""
     similar_count = count_similar(var, val, tbb_v)
+    similar_count = ensure_positive(similar_count)
     return get_entropy(similar_count, tbb_v_total), round(tbb_v_total / similar_count, 2)
-
+    
+    
 def get_entropy(count_similar, count_total):
     """Return the surprisal value."""
-    return 0 + round(-log(count_similar / count_total, 2) , 2)  # add 0 to prevent -0.0
+    if count_similar and count_total:
+        return 0 + round(-log(count_similar / count_total, 2) , 2)  # add 0 to prevent -0.0
+    else:
+        return 0
+    
 
 def get_overall_metrics(fp, tbb_v_total):
     """Return info metrics for combined fingerprint."""
@@ -108,6 +118,7 @@ def get_res_dict_for_var(var, value, tbb_v, tbb_v_total):
 def entropy_table(fp):
     """Return the result table in HTML."""
     tbb_v_total = count_similar('count', '', fp.tbb_v)  # total entries with this tbb_v
+    tbb_v_total = ensure_positive(tbb_v_total)
     surpisal, one_in_x = get_overall_metrics(fp, tbb_v_total)
     res_rows = [get_res_dict_for_var(var, val, fp.tbb_v, tbb_v_total) for var, val in fp]
     res_dict = {"res_rows": res_rows, "tot_surpisal": surpisal,
@@ -136,7 +147,7 @@ def value_or_hash(var, val):
     return val  # TODO: revise
 
 def record_fingerprint(fp):
-    fp.signature = hash_text(' '.join(v for _, v in fp))
+    fp.signature = hash_text(' '.join(str(v) for _, v in fp))
     upsert_totals('count', '', fp.tbb_v)
     for var, val in fp:
         upsert_totals(var, value_or_hash(var, val), fp.tbb_v)
@@ -155,11 +166,17 @@ def get_http_header(header, default=''):
 
 def get_req_arg(param_name, default=''):
     """Return HTTP parameter value."""
-    return request.args.get(param_name) or default
+    try:
+        return request.args.get(param_name)
+    except:
+        return default
     
 def get_req_form_data(key, default=''):
     """Return submitted POST data."""
-    return request.form[key] or default
+    try:
+        return request.form[key]
+    except:
+        return default
 
 def get_accept_headers():
     """Return HTTP accept headers in concatenated form.""" 
