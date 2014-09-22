@@ -90,7 +90,7 @@ def get_entropy(count_similar, count_total):
 def get_overall_metrics(fp):
     """Return info metrics for combined fingerprint."""
     tbb_v_total = count_similar('count', '', fp.tbb_v)  # total entries with this tbb_v
-    return get_info_metrics('signature', fp.signature, fp.tbb_v), tbb_v_total  # TODO !!!
+    return get_info_metrics('signature', fp.signature, fp.tbb_v, tbb_v_total), tbb_v_total  # TODO !!!
 
 def get_res_dict_for_var(var, value, tbb_v, tbb_v_total):
     """Return info metrics for a variable as dict."""
@@ -184,4 +184,4 @@ def detect_client_side_fp(fp):
     return fp
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0')
