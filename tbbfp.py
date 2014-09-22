@@ -87,10 +87,9 @@ def get_entropy(count_similar, count_total):
     """Return the surprisal value."""
     return 0 + round(-log(count_similar / count_total, 2) , 2)  # add 0 to prevent -0.0
     
-def get_overall_metrics(fp):
+def get_overall_metrics(fp, tbb_v_total):
     """Return info metrics for combined fingerprint."""
-    tbb_v_total = count_similar('count', '', fp.tbb_v)  # total entries with this tbb_v
-    return get_info_metrics('signature', fp.signature, fp.tbb_v, tbb_v_total), tbb_v_total  # TODO !!!
+    return get_info_metrics('signature', fp.signature, fp.tbb_v, tbb_v_total)  # TODO !!!
 
 def get_res_dict_for_var(var, value, tbb_v, tbb_v_total):
     """Return info metrics for a variable as dict."""
@@ -99,7 +98,8 @@ def get_res_dict_for_var(var, value, tbb_v, tbb_v_total):
 
 def entropy_table(fp):
     """Return the result table in HTML."""
-    surpisal, one_in_x, tbb_v_total = get_overall_metrics(fp)
+    tbb_v_total = count_similar('count', '', fp.tbb_v)  # total entries with this tbb_v
+    surpisal, one_in_x = get_overall_metrics(fp, tbb_v_total)
     res_rows = [get_res_dict_for_var(var, val, fp.tbb_v, tbb_v_total) for var, val in fp]
     return render_template('entropy_table.html', tot_surpisal=surpisal, 
                            tot_one_in_x=one_in_x, rows=res_rows)
