@@ -133,7 +133,7 @@ function fetch_client_whorls(){
   whorls['fonts'] = get_fonts();
   
   try { 
-    whorls['timezone'] = new Date().getTimezoneOffset();
+    whorls['timezone'] = -(new Date().getTimezoneOffset()) / 60;
   } catch(ex) {
     whorls['timezone'] = "permission denied";
   }

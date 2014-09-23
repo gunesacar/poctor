@@ -7,7 +7,7 @@ from __future__ import division
 import json
 import sqlite3
 from os.path import join as joinp
-from flask import Flask, render_template, request, redirect, url_for, Markup, g
+from flask import Flask, render_template, request, redirect, url_for, Markup, g, session
 from fp_common import TBFingerprint, DB_CONN_TIMEOUT, hash_text
 from math import log
 app = Flask(__name__)
@@ -29,8 +29,11 @@ else:
 def index():
     # we lose the http params on ajax post !!! 
     action = get_req_arg('action', None)
-    record_fp, tbb_v = get_visit_params()
+    
     if action is None:  # just landed
+        record_fp, tbb_v = get_visit_params()
+        session["tbb_v"] = tbb_v  # read the HTTP param
+        session["record_fp"] = record_fp  # read the HTTP param
         return render_template('front.html', record_fp=record_fp, tbb_v=tbb_v)
     elif action == "test":  # linked from Test me button on the landing page
         js_enabled = get_req_arg('js', "no")
@@ -38,7 +41,7 @@ def index():
             return render_template('resultjs.html', result_table='')
         else:  # JS disabled, record server side FP only
             fp = TBFingerprint()
-            fp.tbb_v = tbb_v
+            fp.tbb_v = session["tbb_v"] or "unknown"
             fp = detect_server_side_fp(fp)
             # if record_fp == 'yes':
             record_fingerprint(fp)
@@ -47,7 +50,7 @@ def index():
     elif action == "ajax_post_client_vars":  # post from AJAX, combine with server-side and record
         # we sometimes get multuple (2) POSTs since it times out and retries until we respond
         fp = TBFingerprint()
-        fp.tbb_v = tbb_v
+        fp.tbb_v = session["tbb_v"] or "unknown" # get TBB version from the session
         detect_server_side_fp(fp)
         detect_client_side_fp(fp)
         #if record_fp == 'yes':  # handle cases where rec-no and unique visit causes div by zero errors 
@@ -204,7 +207,6 @@ def detect_client_side_fp(fp):
     fp.plugins = get_req_form_data('plugins')
     fp.timezone = get_req_form_data('timezone')
     fp.fonts = get_req_form_data('fonts')
-    fp.cookie_enabled = get_req_form_data('cookie_enabled')
     fp.supercookies = get_req_form_data('supercookies')
     return fp
 
