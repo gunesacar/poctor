@@ -150,7 +150,7 @@ def value_or_hash(var, val):
     return val  # TODO: revise
 
 def record_fingerprint(fp):
-    fp.signature = hash_text(' '.join(str(v) for _, v in fp))
+    fp.signature = hash_text(' '.join(v for _, v in fp))
     upsert_totals('count', '', fp.tbb_v)
     for var, val in fp:
         upsert_totals(var, value_or_hash(var, val), fp.tbb_v)
